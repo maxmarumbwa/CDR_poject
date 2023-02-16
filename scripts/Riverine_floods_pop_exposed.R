@@ -13,24 +13,22 @@ library(rgdal)   # Replace with sf rgdal stoping 2023
 
 #load input raster and shapefile
 # note St_read best but takes time
-in_raster<- raster(here('data','raw', 'raster', 'Pillar1','Pillar1_all_files','clip_manual','flood_hazard_50_yrp_reclass_All_Countries_Clip.tif'))
-pop_raster <- raster(here('data','raw', 'raster', 'Pillar1','Pillar1_all_files','clip_manual','Pop_gpw_v4_population_count_adjusted_to_2015_unwpp_country_totals_rev11_2020_30_sec_Clip_All_Countries.tif'))
+in_raster<- raster(here('data','raw', 'raster', 'Pillar1','Flood', 'Aqueduct Floods Hazard Maps','inunriver_historical_000000000WATCH_1980_rp00050.tif'))
+#in_raster<- raster(here('data','raw', 'raster', 'Pillar1','Pillar1_all_files','clip_manual','flood_hazard_50_yrp_reclass_All_Countries_Clip.tif'))
+pop_raster <- raster(here('data','raw', 'raster', 'Population','gpw_v4_population_count_adjusted_to_2015_unwpp_country_totals_rev11_2020_30_sec.tif'))
 ##shp_adm3 <- readOGR(here('data','raw', 'shp', 'All_pilot_countries','all_pilot_adm3_wfp.shp'))
 shp_adm2 <- st_read(here('data','raw', 'shp', 'All_pilot_countries','all_pilot_adm2_wfp.shp'))
 #shp_adm2 <- readOGR(here('data','raw', 'shp', 'All_pilot_countries','all_pilot_adm2_wfp.shp'))
 #shp_adm3 <- st_read(here('data','raw', 'shp', 'All_pilot_countries','all_pilot_adm3_wfp.shp'))
+pop_raster(pop_raster)
 
 # Convert the dataframe to shapefile
 shp_adm2.df <- as.data.frame(shp_adm2)
 head(shp_adm2.df,1)
 
-### Resample the in_raster to match the population grid
-# use nearest neigbour 'ngb'method because bilinear changes the original information to the new resolution
-in_raster <- resample(in_raster,pop_raster)
-
 
 ### Subset individual countries
-kenya <- shp_adm2[shp_adm2$adm0_name %in% c( "Kenya"), ]
+kenya <- shp_adm2[shp_adm2$adm0_name %in% c( "Indo"), ]
 #kenya <- shp_adm2[shp_adm2$adm0_name %in% c( "kenya", "Somalia"), ]
 Somalia = shp_adm2[shp_adm2$adm0_name == "Somalia",]
 Antigua_Barbuda <- shp_adm2[shp_adm2$adm0_name %in% c( "Antigua and Barbuda"), ]
@@ -52,14 +50,54 @@ in_ras_kenya<-crop(in_raster,kenya)
 in_ras_kenya_clip<-mask(in_ras_kenya,kenya)
 in_pop_kenya<-crop(pop_raster,kenya)
 in_pop_kenya_clip<-mask(in_pop_kenya,kenya)
-plot(in_pop_kenya_clip)
+plot(in_ras_kenya_clip)
 plot(kenya, add=TRUE, lwd=0.5,border="green")
 title(main = "Population exposed to riverine floods", sub = "source: Aqueduct Floods Hazard Maps")
 plot(in_ras_kenya_clip)
 
+#Creating a boolean map - Select pixels greater than 0
+in_ras_kenya_clip[in_ras_kenya_clip > 0] <- 1
+plot(in_ras_kenya_clip)
+
+# Calculate the population exposed - Risk extent * population grid
+### Resample the in_raster to match the population grid
+# use nearest neigbour 'ngb'method because bilinear changes the original information to the new resolution
+in_ras_kenya_clip <- resample(in_ras_kenya_clip,in_pop_kenya_clip)
+pop_exposed_kenya =in_ras_kenya_clip*in_pop_kenya_clip
+
 # Save the output geotiff files
 writeRaster(in_ras_kenya_clip,here('data','processed', 'raster', 'pop_exposed', 'riverine_floods_kenya.tif'),overwrite=TRUE)
 writeRaster(in_pop_kenya_clip,here('data','processed', 'raster', 'pop_exposed', 'pop_kenya.tif'),overwrite=TRUE)
+writeRaster(pop_exposed_kenya,here('data','processed', 'raster', 'pop_exposed', 'pop_exposed_riverine_floods_50years_kenya.tif'),overwrite=TRUE)
+
+
+### Plot the hazard maps
+rbrick<- stack(in_ras_kenya_clip,pop_exposed_kenya, in_pop_kenya_clip)
+plot(rbrick)
+
+####################----------Defining legend labels-------##################
+label_names_clean = c('pop1', 'pop2')
+library(rasterVis)
+my.at <- seq(0, 1, by = 1)
+myColorkey <- list(at=my.at, ## where the colors change
+                   labels=list(
+                     labels=c('','no drought','drought'), ## labels
+                     at=my.at ## where to print labels
+                   ),names.attr=label_names_clean)
+
+# define the colours corresponsin to the 
+cols<-c('pink', 'palegreen')
+#levelplot(r, at=my.at,colorkey=myColorkey, col.regions=cols, names.attr=label_names_clean)
+#levelplot(vci_brick, at=my.at,colorkey=myColorkey, col.regions=cols, names.attr=label_names_clean)
+
+
+# Working the adding of boundaries not working
+levelplot(vci_mask,
+          at=my.at,
+          main="Differential vegetative drought impacts\n based on reclassified VCI",
+          colorkey=myColorkey,
+          col.regions=cols,
+          names.attr=label_names_clean)
 
 
 
