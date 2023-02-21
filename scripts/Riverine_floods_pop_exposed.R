@@ -90,19 +90,21 @@ difftime(end,start)
 #write to a data frame
 zonal_stats_df <- data.frame(zon_stats)
 # Add shapefile field from the polygon's name
-zonal_stats_df$name=kenya$adm2_name
-zonal_stats_df$Admcode=kenya$adm2_id
+zonal_stats_df$adm2_name=kenya$adm2_name
+zonal_stats_df$adm2_id=kenya$adm2_id
+zonal_stats_df$adm1_name=kenya$adm1_name
+zonal_stats_df$adm1_id=kenya$adm1_id
 
 #write to a CSV file
 write.csv(zonal_stats_df, file = here('test', 'zonal_stats.csv'))
           
-          
+ s         
           
 
           
           
           
-          
+s          
           
           
           
