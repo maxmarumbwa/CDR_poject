@@ -98,7 +98,7 @@ zonal_stats_df$adm1_id=kenya$adm1_id
 #write to a CSV file
 write.csv(zonal_stats_df, file = here('test', 'zonal_stats.csv'))
 
-          
+sx
  s         
           
 
