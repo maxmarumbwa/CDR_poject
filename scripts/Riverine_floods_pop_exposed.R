@@ -97,73 +97,9 @@ zonal_stats_df$adm1_id=kenya$adm1_id
 
 #write to a CSV file
 write.csv(zonal_stats_df, file = here('test', 'zonal_stats.csv'))
+
           
  s         
           
 
-          
-          
-          
-s          
-          
-          
-          
-
-
-
-
-
-
-
-
-
-
-
-###################### Plot the hazard maps ########################
-rbrick<- stack(in_ras_kenya_clip,pop_exposed_kenya, in_pop_kenya_clip)
-plot(rbrick)
-
-####################----------Defining legend labels-------##################
-label_names_clean = c('pop1', 'pop2', 'pop3')
-library(rasterVis)
-my.at <- seq(0, 1, by = 1)
-myColorkey <- list(at=my.at, ## where the colors change
-                   labels=list(
-                     labels=c('no drought','drought'), ## labels
-                     at=my.at ## where to print labels
-                   ),names.attr=label_names_clean)
-
-# define the colours corresponsin to the 
-cols<-c('pink', 'palegreen')
-levelplot(rbrick, at=my.at,colorkey=myColorkey, col.regions=cols, names.attr=label_names_clean)
-#levelplot(vci_brick, at=my.at,colorkey=myColorkey, col.regions=cols, names.attr=label_names_clean)
-
-
-# Working the adding of boundaries not working
-levelplot(vci_mask,
-          at=my.at,
-          main="Differential vegetative drought impacts\n based on reclassified VCI",
-          colorkey=myColorkey,
-          col.regions=cols,
-          names.attr=label_names_clean)
-
-
-
-
-
-
-
-
-
-# Cambodia
-in_ras_kenya<-crop(in_raster,kenya)
-in_ras_kenya_clip<-mask(in_ras_kenya,kenya)
-in_pop_kenya<-crop(pop_raster,kenya)
-in_pop_kenya_clip<-mask(in_pop_kenya,kenya)
-plot(in_pop_kenya_clip)
-plot(in_ras_kenya_clip)
-a=in_pop_kenya_clip*in_ras_kenya_clip
-# Save the output geotiff files
-writeRaster(in_ras_kenya_clip,here('data','processed', 'raster', 'pop_exposed', 'pop_exposed_riverine_floods.tif'),options=c('TFW=YES'))
-writeRaster(in_pop_kenya_clip,here('data','processed', 'raster', 'pop_exposed', 'pop_kenya.tif'),options=c('TFW=YES'))
-
+ 
