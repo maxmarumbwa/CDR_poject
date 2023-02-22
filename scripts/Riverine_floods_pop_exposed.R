@@ -1,3 +1,11 @@
+#----------------------------------------------------------------------------------------
+# File        : Riverine_floods_pop_exposed
+# Author      : Farai Marumbwa
+# Email       : fmarumbwa@unicef.org
+# Organisation:Risk Analysis and Preparedness Section- Office of Emergency Programmes , UNICEF 
+# Purpose     : Calculation of population exposed to Natural hazards
+# Notes       : Variables to change: Admin level (shp, out_shp, Out_folder, in_raster)
+#----------------------------------------------------------------------------------------
 
 #import required libraries
 library(here)
@@ -95,16 +103,16 @@ zonal_stats_df$adm2_name=phase1_pilot_country$adm2_name
 zonal_stats_df$adm2_id=phase1_pilot_country$adm2_id
 zonal_stats_df$adm1_name=phase1_pilot_country$adm1_name
 zonal_stats_df$adm1_id=phase1_pilot_country$adm1_id
-zonal_stats_df$iso=phase1_pilot_country$iso3
+zonal_stats_df$country=phase1_pilot_country$adm0_name
 
-#write to a CSV file
-write.csv(zonal_stats_df, file = here('data','processed','csv','pop_exposed', 'pop_exposed_riverine_flood_50year.csv'))
+############ write to a CSV file (all countries)
+write.csv(zonal_stats_df, file = here('data','processed','csv','pop_exposed', 'pop_exposed_riverine_flood_50year_All.csv'))
 
-
-
-
-
-
+# Split the data frame into individual countries and save as csv
+# Create a folder 'old' to make the script save to the correct folder
+csv_var <- c('pop_exposed_riverine_flood_50year_adm2_')
+df_dat <- split(zonal_stats_df, zonal_stats_df$country)
+lapply(df_dat, function(x) write.csv(x, paste(here('data','processed','csv','pop_exposed_adm2','old'), csv_var, x$country[1], '.csv'), row.names = TRUE))
 
 
 
