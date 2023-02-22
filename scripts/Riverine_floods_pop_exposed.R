@@ -24,6 +24,8 @@ head(shp_adm2.df,1)
 
 ### Subset individual countries
 poly_filter <- c("Kenya")
+phase1_pilot_filter <- c("Kenya","Antigua and Barbuda", "Dominica","Cambodia","Somalia")
+phase1_pilot_country <- shp_adm2[shp_adm2$adm0_name %in% phase1_pilot_filter, ]
 kenya <- shp_adm2[shp_adm2$adm0_name %in% poly_filter, ]
 #kenya <- shp_adm2[shp_adm2$adm0_name %in% c( "kenya", "Somalia"), ]
 Somalia = shp_adm2[shp_adm2$adm0_name == "Somalia",]
@@ -31,7 +33,7 @@ Antigua_Barbuda <- shp_adm2[shp_adm2$adm0_name %in% c( "Antigua and Barbuda"), ]
 Cambodia = shp_adm2[shp_adm2$adm0_name == "Cambodia",]
 Dominica = shp_adm2[shp_adm2$adm0_name == "Dominica",]
 plot(kenya['adm2_id'])
-plot(Antigua_Barbuda['adm2_id'])
+plot(phase1_pilot_country['adm2_id'])
 
 # Method 2
 # Remove the "-" to plot the items defined
@@ -41,7 +43,87 @@ plot(Antigua_Barbuda['adm2_id'])
 
 ########## Clip the population and indicator for each pilot country ###########
 # To do - add map layouts for the in raster and pop  . Do loop for all countries to shorten the code
-# kenya
+
+######### Processing for all pilot countries ########## 
+######### Processing for all pilot countries ########## 
+in_ras_phase1_pilot_country<-crop(in_raster,phase1_pilot_country)
+in_ras_phase1_pilot_country_clip<-mask(in_ras_phase1_pilot_country,phase1_pilot_country)
+in_pop_phase1_pilot_country<-crop(pop_raster,phase1_pilot_country)
+in_pop_phase1_pilot_country_clip<-mask(in_pop_phase1_pilot_country,phase1_pilot_country)
+plot(in_ras_phase1_pilot_country_clip)
+# use col arg to define the background colour
+plot(phase1_pilot_country, add=TRUE,col =NA, lwd=0.1,border="black")
+title(main = "Population exposed to riverine floods", sub = "source: Aqueduct Floods Hazard Maps")
+plot(in_ras_phase1_pilot_country_clip)
+
+#Creating a boolean map - Select pixels greater than 0 to define flood extent
+in_ras_phase1_pilot_country_clip[in_ras_phase1_pilot_country_clip > 0] <- 1
+plot(in_ras_phase1_pilot_country_clip)
+plot(phase1_pilot_country, add=TRUE,col =NA, lwd=0.1,border="black")
+
+# Calculate the population exposed - Risk extent * population grid
+### Resample the in_raster to match the population grid
+# use nearest neigbour 'ngb'method because bilinear changes the original information to the new resolution
+in_ras_phase1_pilot_country_clip <- resample(in_ras_phase1_pilot_country_clip,in_pop_phase1_pilot_country_clip)
+pop_exposed_phase1_pilot_country <- in_ras_phase1_pilot_country_clip*in_pop_phase1_pilot_country_clip
+plot(pop_exposed_phase1_pilot_country)
+
+# Save the output geotiff files
+#writeRaster(pop_exposed_phase1_pilot_country,here('data','processed', 'raster', 'pop_exposed', 'pop_exposed_riverine_floods_50years_phase1_pilot_country.tif'),overwrite=TRUE)
+
+
+#################### Calculation of population exposed per polygon ############################
+
+# create Raster stack for total pop and risk pop. Useful for calculating pop proportions
+pop_stack <- stack(pop_exposed_phase1_pilot_country, in_pop_phase1_pilot_country_clip)
+names(pop_stack) <- c("population_exposed", "total_population")
+
+
+start <- Sys.time() # time the computation
+#extract raster cell total pop within each polygon area
+for (i in 1:nlayers(pop_stack)){
+  zon_stats <- extract(pop_stack, phase1_pilot_country, fun=sum, na.rm=TRUE, df=TRUE)
+}
+# Calc time to execute
+end <- Sys.time()
+difftime(end,start)
+
+#write to a data frame
+zonal_stats_df <- data.frame(zon_stats)
+# Add shapefile field from the polygon's name
+zonal_stats_df$adm2_name=phase1_pilot_country$adm2_name
+zonal_stats_df$adm2_id=phase1_pilot_country$adm2_id
+zonal_stats_df$adm1_name=phase1_pilot_country$adm1_name
+zonal_stats_df$adm1_id=phase1_pilot_country$adm1_id
+zonal_stats_df$iso=phase1_pilot_country$iso3
+
+#write to a CSV file
+write.csv(zonal_stats_df, file = here('data','processed','csv','pop_exposed', 'pop_exposed_riverine_flood_50year.csv'))
+
+
+
+
+
+
+
+
+
+
+
+
+######### Processing Maps for single country kenya ########## 
+######### Processing Maps single country kenya ########## 
+
+### Subset individual countries
+poly_filter <- c("Kenya")
+kenya <- shp_adm2[shp_adm2$adm0_name %in% poly_filter, ]
+#kenya <- shp_adm2[shp_adm2$adm0_name %in% c( "kenya", "Somalia"), ]
+Somalia = shp_adm2[shp_adm2$adm0_name == "Somalia",]
+Antigua_Barbuda <- shp_adm2[shp_adm2$adm0_name %in% c( "Antigua and Barbuda"), ]
+Cambodia = shp_adm2[shp_adm2$adm0_name == "Cambodia",]
+Dominica = shp_adm2[shp_adm2$adm0_name == "Dominica",]
+plot(kenya['adm2_id'])
+
 in_ras_kenya<-crop(in_raster,kenya)
 in_ras_kenya_clip<-mask(in_ras_kenya,kenya)
 in_pop_kenya<-crop(pop_raster,kenya)
@@ -56,6 +138,7 @@ plot(in_ras_kenya_clip)
 in_ras_kenya_clip[in_ras_kenya_clip > 0] <- 1
 plot(in_ras_kenya_clip)
 plot(kenya, add=TRUE,col =NA, lwd=0.1,border="black")
+title(main = "Population exposed to riverine floods", sub = "source: Aqueduct Floods Hazard Maps 50 year return period")
 
 # Calculate the population exposed - Risk extent * population grid
 ### Resample the in_raster to match the population grid
@@ -64,42 +147,8 @@ in_ras_kenya_clip <- resample(in_ras_kenya_clip,in_pop_kenya_clip)
 pop_exposed_kenya =in_ras_kenya_clip*in_pop_kenya_clip
 plot(pop_exposed_kenya)
 
-# Save the output geotiff files
-#writeRaster(in_ras_kenya_clip,here('data','processed', 'raster', 'pop_exposed', 'riverine_floods_kenya.tif'),overwrite=TRUE)
-#writeRaster(in_pop_kenya_clip,here('data','processed', 'raster', 'pop_exposed', 'pop_kenya.tif'),overwrite=TRUE)
-#writeRaster(pop_exposed_kenya,here('data','processed', 'raster', 'pop_exposed', 'pop_exposed_riverine_floods_50years_kenya.tif'),overwrite=TRUE)
 
 
-#################### Calculation of population exposed per polygon ############################
-plot(pop_exposed_kenya)
-
-# create Raster stack for total pop and risk pop. Useful for calculating pop proportions
-pop_stack <- stack(pop_exposed_kenya, in_pop_kenya_clip)
-names(pop_stack) <- c("population_exposed", "total_population")
-
-
-start <- Sys.time() # time the computation
-#extract raster cell total pop within each polygon area
-for (i in 1:nlayers(pop_stack)){
-  zon_stats <- extract(pop_stack, kenya, fun=sum, na.rm=TRUE, df=TRUE)
-}
-# Calc time to execute
-end <- Sys.time()
-difftime(end,start)
-
-#write to a data frame
-zonal_stats_df <- data.frame(zon_stats)
-# Add shapefile field from the polygon's name
-zonal_stats_df$adm2_name=kenya$adm2_name
-zonal_stats_df$adm2_id=kenya$adm2_id
-zonal_stats_df$adm1_name=kenya$adm1_name
-zonal_stats_df$adm1_id=kenya$adm1_id
-
-#write to a CSV file
-write.csv(zonal_stats_df, file = here('test', 'zonal_stats.csv'))
-
-sx
- s         
           
 
  
